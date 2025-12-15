@@ -4,6 +4,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart'; 
 import 'package:path_provider/path_provider.dart'; 
+import 'package:geolocator/geolocator.dart'; 
+import 'package:url_launcher/url_launcher.dart'; 
 
 void main() async {
   // Inicializace Flutter bindingu (nutné pro databázi)
@@ -102,6 +104,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       box.deleteAt(index);
                     },
                   ),
+                  // Otevření detailu s mapou
+                  onTap: () => _showDetailDialog(context, pivo),
                 ),
               );
             },
@@ -119,6 +123,45 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  // Zobrazení detailu a mapy
+  void _showDetailDialog(BuildContext context, Map pivo) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(pivo['name']),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (pivo['imagePath'] != null)
+              SizedBox(
+                height: 200, width: double.infinity,
+                child: Image.file(File(pivo['imagePath']), fit: BoxFit.cover),
+              ),
+            const SizedBox(height: 10),
+            Text("Hodnocení: ${pivo['rating']}/5"),
+            const SizedBox(height: 10),
+            
+            // Tlačítko na mapu (pokud existují souřadnice)
+            if (pivo['lat'] != 0.0 && pivo['lng'] != 0.0)
+              ElevatedButton.icon(
+                icon: const Icon(Icons.map),
+                label: const Text("Ukázat na mapě"),
+                onPressed: () async {
+                  final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=${pivo['lat']},${pivo['lng']}");
+                  if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Nelze otevřít mapu")));
+                  }
+                },
+              )
+            else
+              const Text("Poloha nebyla uložena.", style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Zavřít"))],
+      ),
+    );
+  }
 }
 
 // --- OBRAZOVKA PŘIDÁNÍ PIVA (FORMULÁŘ) ---
@@ -132,7 +175,13 @@ class AddBeerScreen extends StatefulWidget {
 class _AddBeerScreenState extends State<AddBeerScreen> {
   final _nameController = TextEditingController();
   double _rating = 3.0;
-  File? _selectedImage; 
+  File? _selectedImage;
+  
+  // Proměnné pro GPS
+  String _locationStatus = "Poloha nezískána";
+  double _lat = 0.0;
+  double _lng = 0.0;
+  bool _isGettingLocation = false;
 
   Future<void> _takePicture() async {
     final picker = ImagePicker();
@@ -154,6 +203,33 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
     }
   }
 
+  // Získání GPS souřadnic
+  Future<void> _getLocation() async {
+    setState(() => _isGettingLocation = true);
+    try {
+      // Kontrola oprávnění
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          setState(() { _locationStatus = "Bez oprávnění"; _isGettingLocation = false; });
+          return;
+        }
+      }
+
+      // Získání polohy
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      setState(() {
+        _lat = position.latitude;
+        _lng = position.longitude;
+        _locationStatus = "GPS: ${_lat.toStringAsFixed(4)}, ${_lng.toStringAsFixed(4)}";
+        _isGettingLocation = false;
+      });
+    } catch (e) {
+      setState(() { _locationStatus = "Chyba GPS (zapni polohu)"; _isGettingLocation = false; });
+    }
+  }
+
   // Funkce pro uložení do databáze
   void _saveBeer() {
     if (_nameController.text.isEmpty) {
@@ -171,8 +247,8 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
       'rating': _rating,
       'date': DateFormat('dd.MM.yyyy').format(DateTime.now()),
       'imagePath': _selectedImage?.path,
-      'lat': 0.0,
-      'lng': 0.0,
+      'lat': _lat, // Uložení skutečné polohy
+      'lng': _lng,
     });
 
     Navigator.pop(context);
@@ -243,6 +319,24 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
               ),
             ),
             
+            const SizedBox(height: 20),
+
+            // Sekce pro GPS
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(10)),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: _isGettingLocation ? const CircularProgressIndicator() : const Icon(Icons.my_location, color: Colors.blue),
+                    onPressed: _getLocation,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(_locationStatus)),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 30), 
             
             SizedBox(
