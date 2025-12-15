@@ -2,19 +2,19 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart'; 
-import 'package:path_provider/path_provider.dart'; 
-import 'package:geolocator/geolocator.dart'; 
-import 'package:url_launcher/url_launcher.dart'; 
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() async {
   // nutne pro inicializaci pluginu
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // start lokalni databaze
   await Hive.initFlutter();
   await Hive.openBox('piva_box');
-  
+
   runApp(const BeerDiaryApp());
 }
 
@@ -27,8 +27,7 @@ class BeerDiaryApp extends StatelessWidget {
       title: 'Beer Diary',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)), 
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)),
         useMaterial3: true,
       ),
       home: const HomeScreen(),
@@ -44,8 +43,8 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Pivní deník', 
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Colors.black)
+        title: const Text('Pivní deník',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Colors.black)
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -59,17 +58,17 @@ class HomeScreen extends StatelessWidget {
             Expanded(
               // mrizka pro tlacitka menu
               child: GridView.count(
-                crossAxisCount: 2, 
+                crossAxisCount: 2,
                 crossAxisSpacing: 20,
                 mainAxisSpacing: 20,
-                childAspectRatio: 1.2, 
+                childAspectRatio: 1.2,
                 children: [
                   _MenuButton(
                     title: "Moje piva",
                     icon: Icons.sports_bar,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BeerListScreen())),
                   ),
-                  
+
                   _MenuButton(
                     title: "Přidat pivo",
                     icon: Icons.add,
@@ -83,7 +82,7 @@ class HomeScreen extends StatelessWidget {
                   ),
 
                   // misto pro mapu pozdeji
-                  const SizedBox(), 
+                  const SizedBox(),
                 ],
               ),
             ),
@@ -109,11 +108,11 @@ class _MenuButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF2E7D32), 
+          color: const Color(0xFF2E7D32),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
+              color: Colors.black.withValues(alpha: 0.2),
               blurRadius: 8,
               offset: const Offset(0, 4),
             ),
@@ -127,8 +126,8 @@ class _MenuButton extends StatelessWidget {
             Text(
               title,
               style: const TextStyle(
-                color: Colors.white, 
-                fontSize: 18, 
+                color: Colors.white,
+                fontSize: 18,
                 fontWeight: FontWeight.bold
               ),
             ),
@@ -233,7 +232,13 @@ class _BeerListScreenState extends State<BeerListScreen> {
                 label: const Text("Otevřít v Google Mapách"),
                 onPressed: () async {
                   final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=${pivo['lat']},${pivo['lng']}");
-                  if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                  //Oddeleni await a kontroly contextu
+                  bool launched = await launchUrl(url, mode: LaunchMode.externalApplication);
+                  
+                  // Pokud byl widget zahozen behem nacitani, nepokracujeme
+                  if (!context.mounted) return;
+
+                  if (!launched) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Nelze otevřít mapu")));
                   }
                 },
@@ -256,7 +261,7 @@ class StatsScreen extends StatelessWidget {
     final box = Hive.box('piva_box');
     int celkem = box.length;
     double prumer = 0;
-    
+
     // vypocet prumerneho hodnoceni
     if (celkem > 0) {
       double soucet = 0;
@@ -288,8 +293,8 @@ class StatsScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.green.withOpacity(0.3)),
-        boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.1), blurRadius: 10)],
+        border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+        boxShadow: [BoxShadow(color: Colors.green.withValues(alpha: 0.1), blurRadius: 10)],
       ),
       child: Column(
         children: [
@@ -328,9 +333,11 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
       final directory = await getApplicationDocumentsDirectory();
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final String savedPath = '${directory.path}/$fileName';
-      
+
       // zkopirovani do trvaleho uloziste
       await File(photo.path).copy(savedPath);
+      
+      if (!mounted) return; // Pro jistotu kontrola i zde
       setState(() => _selectedImage = File(savedPath));
     }
   }
@@ -374,7 +381,7 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
       'lat': _lat,
       'lng': _lng,
     });
-    
+
     Navigator.pop(context);
   }
 
@@ -426,7 +433,7 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
             ElevatedButton(
               onPressed: _saveBeer,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2E7D32), 
+                backgroundColor: const Color(0xFF2E7D32),
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 foregroundColor: Colors.white,
               ),
