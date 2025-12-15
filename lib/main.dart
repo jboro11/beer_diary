@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
+import 'package:image_picker/image_picker.dart'; 
+import 'package:path_provider/path_provider.dart'; 
 
 void main() async {
   // Inicializace Flutter bindingu (nutné pro databázi)
@@ -39,7 +42,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Odkaz na naši otevřenou krabici s daty
+  // Odkaz otevřenou krabici s daty
   final _pivaBox = Hive.box('piva_box');
 
   @override
@@ -49,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('Beer Diary'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      // ValueListenableBuilder sleduje změny v databázi a hned překresluje seznam
+      // ValueListenableBuilder sleduje změny v databázi
       body: ValueListenableBuilder(
         valueListenable: _pivaBox.listenable(),
         builder: (context, Box box, widget) {
@@ -67,16 +70,25 @@ class _HomeScreenState extends State<HomeScreen> {
           return ListView.builder(
             itemCount: box.length,
             itemBuilder: (context, index) {
-              // Získáme data
+              // Získání dat
               final pivo = box.getAt(index);
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.amber,
-                    child: Icon(Icons.local_drink, color: Colors.white),
-                  ),
+                  leading: pivo['imagePath'] != null
+                      ? ClipOval(
+                          child: Image.file(
+                            File(pivo['imagePath']),
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : const CircleAvatar(
+                          backgroundColor: Colors.amber,
+                          child: Icon(Icons.local_drink, color: Colors.white),
+                        ),
                   title: Text(
                     pivo['name'],
                     style: const TextStyle(fontWeight: FontWeight.bold),
@@ -120,6 +132,27 @@ class AddBeerScreen extends StatefulWidget {
 class _AddBeerScreenState extends State<AddBeerScreen> {
   final _nameController = TextEditingController();
   double _rating = 3.0;
+  File? _selectedImage; 
+
+  Future<void> _takePicture() async {
+    final picker = ImagePicker();
+    // Otevře kameru
+    final XFile? photo = await picker.pickImage(source: ImageSource.camera);
+
+    if (photo != null) {
+      final directory = await getApplicationDocumentsDirectory();
+      // vytvoreni nazvu soubroru podle casu
+      final String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final String savedPath = '${directory.path}/$fileName';
+      
+      // Zkopírujeme fotku do úložiště
+      await File(photo.path).copy(savedPath);
+
+      setState(() {
+        _selectedImage = File(savedPath);
+      });
+    }
+  }
 
   // Funkce pro uložení do databáze
   void _saveBeer() {
@@ -137,13 +170,11 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
       'name': _nameController.text,
       'rating': _rating,
       'date': DateFormat('dd.MM.yyyy').format(DateTime.now()),
-      // Zatím nevyužité (připraveno pro další krok)
-      'imagePath': null,
+      'imagePath': _selectedImage?.path,
       'lat': 0.0,
       'lng': 0.0,
     });
 
-    // Vrátíme se zpět na seznam
     Navigator.pop(context);
   }
 
@@ -151,11 +182,38 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text("Nový úlovek")),
-      body: Padding(
+      body: SingleChildScrollView( // male displeje
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            GestureDetector(
+              onTap: _takePicture,
+              child: Container(
+                height: 200,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  border: Border.all(color: Colors.grey),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: _selectedImage != null
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                      )
+                    : const Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.camera_alt, size: 50, color: Colors.grey),
+                          SizedBox(height: 10),
+                          Text("Klikni a vyfoť pivo!", style: TextStyle(color: Colors.grey)),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
             const Text("Jaké pivo piješ?", style: TextStyle(fontSize: 18)),
             const SizedBox(height: 10),
             TextField(
@@ -185,7 +243,7 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
               ),
             ),
             
-            const Spacer(),
+            const SizedBox(height: 30), 
             
             SizedBox(
               width: double.infinity,
