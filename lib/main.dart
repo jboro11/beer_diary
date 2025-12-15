@@ -8,10 +8,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart'; 
 
 void main() async {
-  // Inicializace bindingu pro Hive a nativní pluginy
+  // nutne pro inicializaci pluginu
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Start databáze
+  // start lokalni databaze
   await Hive.initFlutter();
   await Hive.openBox('piva_box');
   
@@ -27,6 +27,7 @@ class BeerDiaryApp extends StatelessWidget {
       title: 'Beer Diary',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
+        
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)), 
         useMaterial3: true,
       ),
@@ -56,6 +57,7 @@ class HomeScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Expanded(
+              // mrizka pro tlacitka menu
               child: GridView.count(
                 crossAxisCount: 2, 
                 crossAxisSpacing: 20,
@@ -80,7 +82,7 @@ class HomeScreen extends StatelessWidget {
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StatsScreen())),
                   ),
 
-                  // Místo pro budoucí mapu
+                  // misto pro mapu pozdeji
                   const SizedBox(), 
                 ],
               ),
@@ -92,6 +94,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+// vlastni widget pro tlacitko menu
 class _MenuButton extends StatelessWidget {
   final String title;
   final IconData icon;
@@ -144,6 +147,7 @@ class BeerListScreen extends StatefulWidget {
 }
 
 class _BeerListScreenState extends State<BeerListScreen> {
+  // reference na otevreny box
   final _pivaBox = Hive.box('piva_box');
 
   @override
@@ -153,6 +157,7 @@ class _BeerListScreenState extends State<BeerListScreen> {
         title: const Text('Moje piva'),
         backgroundColor: Colors.green[50],
       ),
+      // sleduje zmeny v databazi
       body: ValueListenableBuilder(
         valueListenable: _pivaBox.listenable(),
         builder: (context, Box box, widget) {
@@ -165,7 +170,7 @@ class _BeerListScreenState extends State<BeerListScreen> {
           return ListView.builder(
             itemCount: box.length,
             itemBuilder: (context, index) {
-              // Řazení od nejnovějšího
+              // razeni od nejnovejsiho
               final key = box.keyAt(box.length - 1 - index);
               final pivo = box.get(key);
 
@@ -174,6 +179,7 @@ class _BeerListScreenState extends State<BeerListScreen> {
                 elevation: 2,
                 child: ListTile(
                   contentPadding: const EdgeInsets.all(10),
+                  // zobrazi fotku nebo ikonu
                   leading: pivo['imagePath'] != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(8),
@@ -220,6 +226,7 @@ class _BeerListScreenState extends State<BeerListScreen> {
             const SizedBox(height: 10),
             Text("Hodnocení: ${pivo['rating']}/5"),
             const SizedBox(height: 10),
+            // pokud mame souradnice ukazeme tlacitko
             if (pivo['lat'] != 0.0 && pivo['lng'] != 0.0)
               ElevatedButton.icon(
                 icon: const Icon(Icons.map),
@@ -250,6 +257,7 @@ class StatsScreen extends StatelessWidget {
     int celkem = box.length;
     double prumer = 0;
     
+    // vypocet prumerneho hodnoceni
     if (celkem > 0) {
       double soucet = 0;
       for (var i = 0; i < celkem; i++) {
@@ -311,19 +319,23 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
   double _lng = 0.0;
   bool _isGettingLocation = false;
 
+  // logika pro fotoaparat
   Future<void> _takePicture() async {
     final picker = ImagePicker();
     final XFile? photo = await picker.pickImage(source: ImageSource.camera);
     if (photo != null) {
+      // ziskani cesty kam ulozit fotku
       final directory = await getApplicationDocumentsDirectory();
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final String savedPath = '${directory.path}/$fileName';
       
+      // zkopirovani do trvaleho uloziste
       await File(photo.path).copy(savedPath);
       setState(() => _selectedImage = File(savedPath));
     }
   }
 
+  // logika pro gps
   Future<void> _getLocation() async {
     setState(() => _isGettingLocation = true);
     try {
@@ -353,6 +365,7 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
       return;
     }
     final box = Hive.box('piva_box');
+    // ulozeni dat do hive mapy
     box.add({
       'name': _nameController.text,
       'rating': _rating,
@@ -424,4 +437,4 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
       ),
     );
   }
-} 
+}
