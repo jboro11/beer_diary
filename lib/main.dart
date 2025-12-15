@@ -8,7 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart'; 
 
 void main() async {
-  // Inicializace Flutter bindingu (nutné pro databázi)
+  // Inicializace bindingu pro Hive a nativní pluginy
   WidgetsFlutterBinding.ensureInitialized();
   
   // Start databáze
@@ -27,7 +27,7 @@ class BeerDiaryApp extends StatelessWidget {
       title: 'Beer Diary',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.amber),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)), 
         useMaterial3: true,
       ),
       home: const HomeScreen(),
@@ -35,76 +35,165 @@ class BeerDiaryApp extends StatelessWidget {
   }
 }
 
-// --- HLAVNÍ OBRAZOVKA SE SEZNAMEM ---
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        title: const Text('Pivní deník', 
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26, color: Colors.black)
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 0,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2, 
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 1.2, 
+                children: [
+                  _MenuButton(
+                    title: "Moje piva",
+                    icon: Icons.sports_bar,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const BeerListScreen())),
+                  ),
+                  
+                  _MenuButton(
+                    title: "Přidat pivo",
+                    icon: Icons.add,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AddBeerScreen())),
+                  ),
+
+                  _MenuButton(
+                    title: "Statistiky",
+                    icon: Icons.bar_chart,
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const StatsScreen())),
+                  ),
+
+                  // Místo pro budoucí mapu
+                  const SizedBox(), 
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  // Odkaz otevřenou krabici s daty
+class _MenuButton extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _MenuButton({required this.title, required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF2E7D32), 
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 48, color: Colors.white),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white, 
+                fontSize: 18, 
+                fontWeight: FontWeight.bold
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BeerListScreen extends StatefulWidget {
+  const BeerListScreen({super.key});
+
+  @override
+  State<BeerListScreen> createState() => _BeerListScreenState();
+}
+
+class _BeerListScreenState extends State<BeerListScreen> {
   final _pivaBox = Hive.box('piva_box');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Beer Diary'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: const Text('Moje piva'),
+        backgroundColor: Colors.green[50],
       ),
-      // ValueListenableBuilder sleduje změny v databázi
       body: ValueListenableBuilder(
         valueListenable: _pivaBox.listenable(),
         builder: (context, Box box, widget) {
           if (box.isEmpty) {
             return const Center(
-              child: Text(
-                'Klikni na + a přidej první pivo.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
-              ),
+              child: Text('Zatím jsi nic nepřidal.'),
             );
           }
 
-          // Seznam piv
           return ListView.builder(
             itemCount: box.length,
             itemBuilder: (context, index) {
-              // Získání dat
-              final pivo = box.getAt(index);
+              // Řazení od nejnovějšího
+              final key = box.keyAt(box.length - 1 - index);
+              final pivo = box.get(key);
 
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                elevation: 2,
                 child: ListTile(
+                  contentPadding: const EdgeInsets.all(10),
                   leading: pivo['imagePath'] != null
-                      ? ClipOval(
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
                           child: Image.file(
                             File(pivo['imagePath']),
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
+                            width: 60, height: 60, fit: BoxFit.cover,
                           ),
                         )
-                      : const CircleAvatar(
-                          backgroundColor: Colors.amber,
-                          child: Icon(Icons.local_drink, color: Colors.white),
+                      : Container(
+                          width: 60, height: 60,
+                          decoration: BoxDecoration(color: Colors.green[100], borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.local_drink, color: Colors.green),
                         ),
-                  title: Text(
-                    pivo['name'],
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Text("Hodnocení: ${pivo['rating']}/5\n${pivo['date']}"),
+                  title: Text(pivo['name'], style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text("${'⭐' * (pivo['rating'] ?? 0).round()}\n${pivo['date']}"),
                   isThreeLine: true,
                   trailing: IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () {
-                      // Smazání položky
-                      box.deleteAt(index);
-                    },
+                    icon: const Icon(Icons.delete, color: Colors.grey),
+                    onPressed: () => box.delete(key),
                   ),
-                  // Otevření detailu s mapou
                   onTap: () => _showDetailDialog(context, pivo),
                 ),
               );
@@ -112,19 +201,9 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddBeerScreen()),
-          );
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
-  // Zobrazení detailu a mapy
   void _showDetailDialog(BuildContext context, Map pivo) {
     showDialog(
       context: context,
@@ -141,12 +220,10 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 10),
             Text("Hodnocení: ${pivo['rating']}/5"),
             const SizedBox(height: 10),
-            
-            // Tlačítko na mapu (pokud existují souřadnice)
             if (pivo['lat'] != 0.0 && pivo['lng'] != 0.0)
               ElevatedButton.icon(
                 icon: const Icon(Icons.map),
-                label: const Text("Ukázat na mapě"),
+                label: const Text("Otevřít v Google Mapách"),
                 onPressed: () async {
                   final url = Uri.parse("https://www.google.com/maps/search/?api=1&query=${pivo['lat']},${pivo['lng']}");
                   if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
@@ -164,7 +241,60 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// --- OBRAZOVKA PŘIDÁNÍ PIVA (FORMULÁŘ) ---
+class StatsScreen extends StatelessWidget {
+  const StatsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final box = Hive.box('piva_box');
+    int celkem = box.length;
+    double prumer = 0;
+    
+    if (celkem > 0) {
+      double soucet = 0;
+      for (var i = 0; i < celkem; i++) {
+        soucet += box.getAt(i)['rating'];
+      }
+      prumer = soucet / celkem;
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: const Text("Statistiky"), backgroundColor: Colors.green[50]),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _statCard("Celkem vypito", "$celkem", Icons.sports_bar),
+            const SizedBox(height: 20),
+            _statCard("Průměrné hodnocení", "${prumer.toStringAsFixed(1)} ⭐", Icons.star),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statCard(String label, String value, IconData icon) {
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.green.withOpacity(0.3)),
+        boxShadow: [BoxShadow(color: Colors.green.withOpacity(0.1), blurRadius: 10)],
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 40, color: Colors.green),
+          const SizedBox(height: 10),
+          Text(label, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+          Text(value, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.bold, color: Colors.black)),
+        ],
+      ),
+    );
+  }
+}
+
 class AddBeerScreen extends StatefulWidget {
   const AddBeerScreen({super.key});
 
@@ -176,8 +306,6 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
   final _nameController = TextEditingController();
   double _rating = 3.0;
   File? _selectedImage;
-  
-  // Proměnné pro GPS
   String _locationStatus = "Poloha nezískána";
   double _lat = 0.0;
   double _lng = 0.0;
@@ -185,29 +313,20 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
 
   Future<void> _takePicture() async {
     final picker = ImagePicker();
-    // Otevře kameru
     final XFile? photo = await picker.pickImage(source: ImageSource.camera);
-
     if (photo != null) {
       final directory = await getApplicationDocumentsDirectory();
-      // vytvoreni nazvu soubroru podle casu
       final String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final String savedPath = '${directory.path}/$fileName';
       
-      // Zkopírujeme fotku do úložiště
       await File(photo.path).copy(savedPath);
-
-      setState(() {
-        _selectedImage = File(savedPath);
-      });
+      setState(() => _selectedImage = File(savedPath));
     }
   }
 
-  // Získání GPS souřadnic
   Future<void> _getLocation() async {
     setState(() => _isGettingLocation = true);
     try {
-      // Kontrola oprávnění
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
@@ -216,8 +335,6 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
           return;
         }
       }
-
-      // Získání polohy
       Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
       setState(() {
         _lat = position.latitude;
@@ -226,133 +343,85 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
         _isGettingLocation = false;
       });
     } catch (e) {
-      setState(() { _locationStatus = "Chyba GPS (zapni polohu)"; _isGettingLocation = false; });
+      setState(() { _locationStatus = "Chyba GPS"; _isGettingLocation = false; });
     }
   }
 
-  // Funkce pro uložení do databáze
   void _saveBeer() {
     if (_nameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Musíš zadat název piva!")),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Musíš zadat název piva!")));
       return;
     }
-
     final box = Hive.box('piva_box');
-    
-    // Přidáme data do Hive
     box.add({
       'name': _nameController.text,
       'rating': _rating,
-      'date': DateFormat('dd.MM.yyyy').format(DateTime.now()),
+      'date': DateFormat('dd.MM.yyyy HH:mm').format(DateTime.now()),
       'imagePath': _selectedImage?.path,
-      'lat': _lat, // Uložení skutečné polohy
+      'lat': _lat,
       'lng': _lng,
     });
-
+    
     Navigator.pop(context);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Nový úlovek")),
-      body: SingleChildScrollView( // male displeje
+      appBar: AppBar(title: const Text("Nový úlovek"), backgroundColor: Colors.green[50]),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             GestureDetector(
               onTap: _takePicture,
               child: Container(
                 height: 200,
-                width: double.infinity,
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
-                  border: Border.all(color: Colors.grey),
+                  color: Colors.grey[100],
+                  border: Border.all(color: Colors.grey.shade300),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: _selectedImage != null
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
-                        child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                      )
+                    ? ClipRRect(borderRadius: BorderRadius.circular(12), child: Image.file(_selectedImage!, fit: BoxFit.cover))
                     : const Column(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.camera_alt, size: 50, color: Colors.grey),
-                          SizedBox(height: 10),
-                          Text("Klikni a vyfoť pivo!", style: TextStyle(color: Colors.grey)),
-                        ],
+                        children: [Icon(Icons.camera_alt, size: 50, color: Colors.grey), Text("Klikni a vyfoť pivo!", style: TextStyle(color: Colors.grey))],
                       ),
               ),
             ),
             const SizedBox(height: 20),
-
-            const Text("Jaké pivo piješ?", style: TextStyle(fontSize: 18)),
-            const SizedBox(height: 10),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: "Název piva",
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.sports_bar),
-              ),
-            ),
-            const SizedBox(height: 30),
-            
-            const Text("Jak ti chutná?", style: TextStyle(fontSize: 18)),
-            Slider(
-              value: _rating,
-              min: 1,
-              max: 5,
-              divisions: 4,
-              label: _rating.round().toString(),
-              activeColor: Colors.amber,
-              onChanged: (val) => setState(() => _rating = val),
-            ),
-            Center(
-              child: Text(
-                "${_rating.round()} hvězd",
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-            
+            TextField(controller: _nameController, decoration: const InputDecoration(labelText: "Název piva", border: OutlineInputBorder(), prefixIcon: Icon(Icons.sports_bar))),
             const SizedBox(height: 20),
-
-            // Sekce pro GPS
+            const Text("Hodnocení:", style: TextStyle(fontWeight: FontWeight.bold)),
+            Slider(value: _rating, min: 1, max: 5, divisions: 4, label: _rating.round().toString(), activeColor: Colors.green, onChanged: (val) => setState(() => _rating = val)),
+            Center(child: Text("${_rating.round()} hvězd", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold))),
+            const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(color: Colors.green[50], borderRadius: BorderRadius.circular(10)),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: _isGettingLocation ? const CircularProgressIndicator() : const Icon(Icons.my_location, color: Colors.blue),
-                    onPressed: _getLocation,
-                  ),
+                  IconButton(icon: _isGettingLocation ? const CircularProgressIndicator() : const Icon(Icons.my_location, color: Colors.green), onPressed: _getLocation),
                   const SizedBox(width: 10),
                   Expanded(child: Text(_locationStatus)),
                 ],
               ),
             ),
-
-            const SizedBox(height: 30), 
-            
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _saveBeer,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.amber,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                ),
-                child: const Text("ULOŽIT", style: TextStyle(fontSize: 18, color: Colors.black)),
+            const SizedBox(height: 30),
+            ElevatedButton(
+              onPressed: _saveBeer,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2E7D32), 
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                foregroundColor: Colors.white,
               ),
+              child: const Text("ULOŽIT DO DENÍČKU", style: TextStyle(fontSize: 18)),
             ),
           ],
         ),
       ),
     );
   }
-}
+} 
