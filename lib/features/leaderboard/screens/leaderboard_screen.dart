@@ -11,32 +11,41 @@ class LeaderboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Žebříček'),
-        backgroundColor: Colors.green[50],
+        title: const Text('Žebříček 🏆'),
       ),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.leaderboard, size: 80, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              'Žebříček – připravujeme',
-              style: TextStyle(fontSize: 20, color: Colors.grey),
-            ),
-            SizedBox(height: 8),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 40),
-              child: Text(
-                'Zde uvidíš kdo z tvých přátel '
-                'vypil nejvíc, nejlépe hodnocená piva a další.',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.leaderboard_outlined,
+                size: 100,
+                color: theme.colorScheme.primary.withValues(alpha: 0.2),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+              Text(
+                'Žebříček – připravujeme',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Zde uvidíš kdo z tvých přátel\nvypil nejvíc a má nejlepší hodnocení.',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

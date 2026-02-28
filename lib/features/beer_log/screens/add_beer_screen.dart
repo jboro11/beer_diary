@@ -1,9 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/models/beer_entry.dart';
+import '../../../core/services/local_database_service.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/image_service.dart';
 import '../../../core/services/supabase_service.dart';
@@ -12,7 +13,7 @@ import '../../../core/services/sync_service.dart';
 /// Obrazovka pro přidání nového piva – "One-Tap" flow.
 ///
 /// ## Pillar 2 (Offline-First) integrace:
-/// 1. Lokální uložení do Hive (offline-first, okamžitý UI update).
+/// 1. Lokální uložení přes LocalDatabaseService (okamžitý UI update).
 /// 2. Záznam do sync fronty pro pozdější synchronizaci.
 /// 3. Pokud online → okamžitý sync.
 ///
@@ -92,17 +93,17 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
 
     final now = DateTime.now();
 
-    // ── 1. Lokální uložení (okamžitý optimistický update) ──
-    final box = Hive.box('piva_box');
-    box.add({
-      'name': _nameController.text,
-      'rating': _rating,
-      'date': DateFormat('dd.MM.yyyy HH:mm').format(now),
-      'imagePath': _selectedImage?.path,
-      'lat': _lat,
-      'lng': _lng,
-      'is_ghost': _isGhost,
-    });
+    // ── 1. Lokální uložení přes LocalDatabaseService ──
+    final entry = BeerEntry(
+      name: _nameController.text,
+      rating: _rating,
+      date: DateFormat('dd.MM.yyyy HH:mm').format(now),
+      imagePath: _selectedImage?.path,
+      lat: _lat,
+      lng: _lng,
+      isGhost: _isGhost,
+    );
+    await LocalDatabaseService.addBeer(entry);
 
     // ── 2. Přidat do sync fronty (Pillar 2: Offline-First) ──
     if (SupabaseService.isAvailable) {

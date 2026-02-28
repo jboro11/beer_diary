@@ -5,13 +5,13 @@ import 'core/config/supabase_config.dart';
 import 'core/services/auth_service.dart';
 import 'features/auth/screens/age_gate_screen.dart';
 import 'features/auth/screens/auth_screen.dart';
-import 'features/home/screens/home_screen.dart';
+import 'features/home/screens/main_scaffold.dart';
 
 /// Kořenový widget aplikace BeerBuddy.
 ///
 /// ## Flow (Pillar 6 → Pillar 1 → Home):
 /// ```
-/// AgeGate (pokud poprvé) → AuthScreen (pokud Supabase) → HomeScreen
+/// AgeGate (pokud poprvé) → AuthScreen (pokud Supabase) → MainScaffold
 /// ```
 class BeerBuddyApp extends StatelessWidget {
   const BeerBuddyApp({super.key});
@@ -29,7 +29,7 @@ class BeerBuddyApp extends StatelessWidget {
   }
 }
 
-/// Řídí flow: Age Gate → Auth → Home.
+/// Řídí flow: Age Gate → Auth → MainScaffold.
 class _AppGate extends StatefulWidget {
   const _AppGate();
 
@@ -77,7 +77,7 @@ class _AppGateState extends State<_AppGate> {
       return const AuthScreen();
     }
 
-    // Hlavní aplikace
-    return const HomeScreen();
+    // Hlavní aplikace s BottomNavigationBar
+    return const MainScaffold();
   }
 }

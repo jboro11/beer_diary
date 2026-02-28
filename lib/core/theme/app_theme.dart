@@ -41,12 +41,17 @@ class AppTheme {
         appBarTheme: const AppBarTheme(
           centerTitle: true,
           elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black,
-          titleTextStyle: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-            color: Colors.black,
+          scrolledUnderElevation: 1,
+        ),
+        bottomAppBarTheme: const BottomAppBarTheme(
+          elevation: 8,
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: primaryGreen,
+          foregroundColor: Colors.white,
+          elevation: 6,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
       );
@@ -58,5 +63,32 @@ class AppTheme {
         ),
         useMaterial3: true,
         scaffoldBackgroundColor: darkBg,
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            minimumSize: const Size(double.infinity, 56),
+            textStyle: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+        ),
+        cardTheme: CardThemeData(
+          elevation: 2,
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        appBarTheme: const AppBarTheme(
+          centerTitle: true,
+          elevation: 0,
+          scrolledUnderElevation: 1,
+        ),
+        bottomAppBarTheme: const BottomAppBarTheme(
+          elevation: 8,
+        ),
       );
 }
