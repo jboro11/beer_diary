@@ -1,30 +1,32 @@
-// This is a basic Flutter widget test.
+// Basic smoke test for BeerBuddy app.
 //
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Verifies that the app launches and shows key UI elements.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:beer_diary/app.dart';
 import 'package:beer_diary/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('BeerBuddyApp renders home screen with menu', (WidgetTester tester) async {
+    await tester.pumpWidget(const BeerBuddyApp());
+
+    // Hlavní nadpis
+    expect(find.text('BeerBuddy 🍺'), findsOneWidget);
+
+    // Menu tlačítka
+    expect(find.text('Moje piva'), findsOneWidget);
+    expect(find.text('Přidat pivo'), findsOneWidget);
+    expect(find.text('Statistiky'), findsOneWidget);
+    expect(find.text('Přátelé'), findsOneWidget);
+    expect(find.text('Žebříček'), findsOneWidget);
+  });
+
+  testWidgets('BeerDiaryApp backward compat renders same UI', (WidgetTester tester) async {
     await tester.pumpWidget(const BeerDiaryApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
-
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
-
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('BeerBuddy 🍺'), findsOneWidget);
+    expect(find.text('Moje piva'), findsOneWidget);
   });
 }
