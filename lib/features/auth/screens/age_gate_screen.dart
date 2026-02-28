@@ -183,7 +183,7 @@ class _AgeGateScreenState extends State<AgeGateScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 24),
                 child: Text(
-                  'Datum narození neukládáme.\nSlou​ží pouze k ověření věku.',
+                  'Datum narození neukládáme.\nSlouží pouze k ověření věku.',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
