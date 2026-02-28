@@ -2,6 +2,12 @@
 ///
 /// Obsahuje geolokaci (latitude/longitude), hodnocení, poznámku
 /// a volitelný název podniku.
+///
+/// ## Ghost Mode (Pillar 5):
+/// Pokud [isGhost] = true:
+/// - ✓ Započítá se do osobních statistik uživatele
+/// - ✗ NEPROPÍŠE se do veřejného feedu / žebříčku
+/// - ✗ NESDÍLÍ se lokace s přáteli
 class BeerLog {
   final int? id;
   final String userId;
@@ -13,6 +19,7 @@ class BeerLog {
   final double? latitude;
   final double? longitude;
   final String? venueName;
+  final bool isGhost;
   final DateTime loggedAt;
   final DateTime? createdAt;
 
@@ -27,6 +34,7 @@ class BeerLog {
     this.latitude,
     this.longitude,
     this.venueName,
+    this.isGhost = false,
     required this.loggedAt,
     this.createdAt,
   });
@@ -42,6 +50,7 @@ class BeerLog {
         latitude: (json['latitude'] as num?)?.toDouble(),
         longitude: (json['longitude'] as num?)?.toDouble(),
         venueName: json['venue_name'] as String?,
+        isGhost: json['is_ghost'] as bool? ?? false,
         loggedAt: DateTime.parse(json['logged_at'] as String),
         createdAt: json['created_at'] != null
             ? DateTime.parse(json['created_at'] as String)
@@ -58,6 +67,7 @@ class BeerLog {
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         if (venueName != null) 'venue_name': venueName,
+        'is_ghost': isGhost,
         'logged_at': loggedAt.toIso8601String(),
       };
 
@@ -73,6 +83,7 @@ class BeerLog {
     double? latitude,
     double? longitude,
     String? venueName,
+    bool? isGhost,
     DateTime? loggedAt,
   }) =>
       BeerLog(
@@ -86,6 +97,7 @@ class BeerLog {
         latitude: latitude ?? this.latitude,
         longitude: longitude ?? this.longitude,
         venueName: venueName ?? this.venueName,
+        isGhost: isGhost ?? this.isGhost,
         loggedAt: loggedAt ?? this.loggedAt,
         createdAt: createdAt,
       );

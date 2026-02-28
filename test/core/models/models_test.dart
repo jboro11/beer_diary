@@ -57,6 +57,7 @@ void main() {
         'latitude': 49.7477,
         'longitude': 13.3776,
         'venue_name': 'Na Spilce',
+        'is_ghost': false,
         'logged_at': '2025-06-15T20:30:00Z',
         'created_at': '2025-06-15T20:30:01Z',
       };
@@ -69,6 +70,33 @@ void main() {
       expect(log.latitude, 49.7477);
       expect(log.longitude, 13.3776);
       expect(log.venueName, 'Na Spilce');
+      expect(log.isGhost, false);
+    });
+
+    test('fromJson defaults isGhost to false when missing', () {
+      final json = {
+        'user_id': 'user-123',
+        'beer_name': 'Test',
+        'logged_at': '2025-06-15T20:30:00Z',
+      };
+
+      final log = BeerLog.fromJson(json);
+      expect(log.isGhost, false);
+    });
+
+    test('ghost mode log serializes correctly', () {
+      final log = BeerLog(
+        userId: 'user-123',
+        beerName: 'Ghost Beer',
+        rating: 4,
+        isGhost: true,
+        loggedAt: DateTime.parse('2025-06-15T20:00:00Z'),
+      );
+
+      final json = log.toJson();
+
+      expect(json['is_ghost'], true);
+      expect(json['beer_name'], 'Ghost Beer');
     });
 
     test('toJson includes geolocation when present', () {
@@ -102,6 +130,7 @@ void main() {
       expect(json.containsKey('longitude'), false);
       expect(json.containsKey('rating'), false);
       expect(json.containsKey('venue_name'), false);
+      expect(json['is_ghost'], false);
     });
 
     test('copyWith creates modified copy', () {
@@ -112,10 +141,11 @@ void main() {
         loggedAt: DateTime.parse('2025-06-15T20:00:00Z'),
       );
 
-      final modified = original.copyWith(rating: 5, venueName: 'U Fleků');
+      final modified = original.copyWith(rating: 5, venueName: 'U Fleků', isGhost: true);
 
       expect(modified.rating, 5);
       expect(modified.venueName, 'U Fleků');
+      expect(modified.isGhost, true);
       expect(modified.beerName, 'Kozel');
       expect(modified.userId, 'user-123');
     });
@@ -129,6 +159,8 @@ void main() {
         'display_name': 'Jan Pivoňka',
         'avatar_url': 'https://example.com/avatar.jpg',
         'bio': 'Milovník piva',
+        'ghost_mode': true,
+        'age_verified_at': '2025-06-01T12:00:00Z',
         'created_at': '2025-01-01T00:00:00Z',
       };
 
@@ -137,6 +169,19 @@ void main() {
       expect(profile.id, 'user-abc');
       expect(profile.username, 'pivonka');
       expect(profile.displayName, 'Jan Pivoňka');
+      expect(profile.ghostMode, true);
+      expect(profile.ageVerifiedAt, isNotNull);
+    });
+
+    test('fromJson defaults ghostMode to false', () {
+      final json = {
+        'id': 'user-abc',
+        'username': 'pivonka',
+      };
+
+      final profile = UserProfile.fromJson(json);
+      expect(profile.ghostMode, false);
+      expect(profile.ageVerifiedAt, isNull);
     });
 
     test('toJson produces correct map', () {
@@ -144,12 +189,14 @@ void main() {
         id: 'user-abc',
         username: 'pivonka',
         displayName: 'Jan Pivoňka',
+        ghostMode: true,
       );
 
       final json = profile.toJson();
 
       expect(json['username'], 'pivonka');
       expect(json['display_name'], 'Jan Pivoňka');
+      expect(json['ghost_mode'], true);
     });
   });
 

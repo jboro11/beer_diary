@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/config/supabase_config.dart';
+import 'core/services/connectivity_service.dart';
+import 'core/services/sync_service.dart';
 import 'app.dart';
 
 void main() async {
@@ -11,8 +13,14 @@ void main() async {
   await Hive.initFlutter();
   await Hive.openBox('piva_box');
 
+  // Pillar 2a: Connectivity monitoring
+  await ConnectivityService.init();
+
   // Supabase (pokud jsou definovány --dart-define proměnné)
   await SupabaseConfig.init();
+
+  // Pillar 2b: Sync engine (naváže se na connectivity)
+  await SyncService.init();
 
   runApp(const BeerBuddyApp());
 }

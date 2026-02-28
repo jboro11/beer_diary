@@ -36,6 +36,7 @@ class SupabaseService {
     double? latitude,
     double? longitude,
     String? venueName,
+    bool isGhost = false,
   }) async {
     final client = _client;
     final userId = currentUserId;
@@ -51,6 +52,7 @@ class SupabaseService {
       latitude: latitude,
       longitude: longitude,
       venueName: venueName,
+      isGhost: isGhost,
       loggedAt: DateTime.now(),
     );
 
