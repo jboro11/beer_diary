@@ -90,12 +90,16 @@ class _AddBeerScreenState extends State<AddBeerScreen> {
 
     // ── 2. Supabase sync (pokud je dostupný) ──
     if (SupabaseService.isAvailable) {
-      await SupabaseService.logBeer(
-        beerName: _nameController.text,
-        rating: _rating.round(),
-        latitude: _lat != 0.0 ? _lat : null,
-        longitude: _lng != 0.0 ? _lng : null,
-      );
+      try {
+        await SupabaseService.logBeer(
+          beerName: _nameController.text,
+          rating: _rating.round(),
+          latitude: _lat != 0.0 ? _lat : null,
+          longitude: _lng != 0.0 ? _lng : null,
+        );
+      } catch (_) {
+        // Sync selhal – data zůstávají lokálně v Hive
+      }
     }
 
     if (!mounted) return;

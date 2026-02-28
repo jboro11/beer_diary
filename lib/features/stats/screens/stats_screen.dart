@@ -14,7 +14,7 @@ class StatsScreen extends StatelessWidget {
     if (celkem > 0) {
       double soucet = 0;
       for (var i = 0; i < celkem; i++) {
-        soucet += box.getAt(i)['rating'];
+        soucet += (box.getAt(i)['rating'] ?? 0);
       }
       prumer = soucet / celkem;
     }

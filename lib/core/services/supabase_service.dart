@@ -54,13 +54,17 @@ class SupabaseService {
       loggedAt: DateTime.now(),
     );
 
-    final response = await client
-        .from('beer_logs')
-        .insert(log.toJson())
-        .select()
-        .single();
+    try {
+      final response = await client
+          .from('beer_logs')
+          .insert(log.toJson())
+          .select()
+          .single();
 
-    return BeerLog.fromJson(response);
+      return BeerLog.fromJson(response);
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Načte záznamy přihlášeného uživatele (stránkované).
@@ -97,12 +101,18 @@ class SupabaseService {
   /// Vyhledá piva v katalogu podle názvu (autocomplete).
   static Future<List<Beer>> searchBeers(String query) async {
     final client = _client;
-    if (client == null) return [];
+    if (client == null || query.isEmpty) return [];
+
+    // Escape LIKE special characters
+    final sanitized = query
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
 
     final response = await client
         .from('beers')
         .select()
-        .ilike('name', '%$query%')
+        .ilike('name', '%$sanitized%')
         .limit(20);
 
     return (response as List)

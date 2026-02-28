@@ -34,11 +34,16 @@ class SupabaseConfig {
       url: supabaseUrl,
       anonKey: supabaseAnonKey,
     );
+    _initialized = true;
   }
+
+  static bool _initialized = false;
 
   /// Vrací Supabase klienta, nebo null pokud není nakonfigurován.
   static SupabaseClient? get client {
-    if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) return null;
+    if (!_initialized || supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+      return null;
+    }
     return Supabase.instance.client;
   }
 }

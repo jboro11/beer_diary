@@ -25,7 +25,7 @@ BEGIN
   INSERT INTO public.profiles (id, username, display_name)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'username', 'user_' || LEFT(NEW.id::text, 8)),
+    COALESCE(NEW.raw_user_meta_data->>'username', 'user_' || REPLACE(NEW.id::text, '-', '')),
     COALESCE(NEW.raw_user_meta_data->>'display_name', 'Nový pivoňka')
   );
   RETURN NEW;
